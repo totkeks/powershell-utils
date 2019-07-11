@@ -1,8 +1,10 @@
 Function Clone-Repository {
 	Param(
 		[parameter(Mandatory = $true)]
-		[String]
-		$Url
+		[ValidateNotNullOrEmpty()]
+		[string] $Url,
+
+		[switch] $Force
 	)
 
 	#------------------------------------------------------------------------------
@@ -35,7 +37,7 @@ Function Clone-Repository {
 	#------------------------------------------------------------------------------
 	$Match = $GitProviders.GetEnumerator() |
 		Select-Object @{n = "Provider"; e = { $_.Key } }, @{n = "Path"; e = { $_.Value.invoke($Url) } } |
-		Where-Object { -ne $null $_.Path } |
+		Where-Object { $_.Path -ne $null } |
 		Select-Object -First 1
 
 	if ($Match) {
@@ -48,7 +50,21 @@ Function Clone-Repository {
 			Write-Error "No projects directory configured. Aborting."
 		}
 
+		if (Test-Path -PathType Container $TargetDirectory) {
+			if ($Force) {
+				Write-Host "Removing existing target directory."
+				Remove-Item -Recurse -Force $TargetDirectory
+			}
+			else {
+				Write-Error "Target directory already exists. Use -Force to overwrite. Aborting."
+			}
+		}
+
 		git.exe clone $Url $TargetDirectory
+
+		if ($LASTEXITCODE -eq 0) {
+			Set-Location $TargetDirectory
+		}
 	}
 	else {
 		Write-Error "No match found for repository url: $Url"
