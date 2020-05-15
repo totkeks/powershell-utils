@@ -1,0 +1,1 @@
+git branch --format "%(if:equals=gone)%(upstream:track,nobracket)%(then)%(refname:short)%(end)"
